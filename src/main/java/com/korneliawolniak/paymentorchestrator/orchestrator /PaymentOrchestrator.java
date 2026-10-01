@@ -25,8 +25,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class PaymentOrchestrator {
 
-  private static final Logger LOGGER =
-          LoggerFactory.getLogger(PaymentOrchestrator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PaymentOrchestrator.class);
 
   private final PaymentRepository paymentRepository;
   private final TransactionRepository transactionRepository;
@@ -37,13 +36,13 @@ public class PaymentOrchestrator {
   private final PaymentStatusAggregator paymentStatusAggregator;
 
   public PaymentOrchestrator(
-          PaymentRepository paymentRepository,
-          TransactionRepository transactionRepository,
-          PaymentValidationRequestMapper paymentValidationRequestMapper,
-          PaymentValidationRequestPublisher paymentValidationRequestPublisher,
-          TransactionValidationRequestMapper transactionValidationRequestMapper,
-          TransactionValidationRequestPublisher transactionValidationRequestPublisher,
-          PaymentStatusAggregator paymentStatusAggregator) {
+      PaymentRepository paymentRepository,
+      TransactionRepository transactionRepository,
+      PaymentValidationRequestMapper paymentValidationRequestMapper,
+      PaymentValidationRequestPublisher paymentValidationRequestPublisher,
+      TransactionValidationRequestMapper transactionValidationRequestMapper,
+      TransactionValidationRequestPublisher transactionValidationRequestPublisher,
+      PaymentStatusAggregator paymentStatusAggregator) {
     this.paymentRepository = paymentRepository;
     this.transactionRepository = transactionRepository;
     this.paymentValidationRequestMapper = paymentValidationRequestMapper;
@@ -53,131 +52,84 @@ public class PaymentOrchestrator {
     this.paymentStatusAggregator = paymentStatusAggregator;
   }
 
-  @KafkaListener(
-          topics = "payment-created",
-          groupId = "payment-orchestrator")
+  @KafkaListener(topics = "payment-created", groupId = "payment-orchestrator")
   public void handlePaymentCreated(PaymentCreatedEvent event) {
 
-    UUID paymentId =
-            UUID.fromString(event.getPaymentId().toString());
+    UUID paymentId = UUID.fromString(event.getPaymentId().toString());
 
     PaymentEntity paymentEntity =
-            new PaymentEntity(
-                    paymentId,
-                    PaymentStatus.PENDING,
-                    PaymentStatus.PENDING);
+        new PaymentEntity(paymentId, PaymentStatus.PENDING, PaymentStatus.PENDING);
 
     paymentRepository.save(paymentEntity);
 
     for (TransactionEvent transaction : event.getTransactions()) {
 
-      UUID transactionId =
-              UUID.fromString(
-                      transaction.getTransactionId().toString());
+      UUID transactionId = UUID.fromString(transaction.getTransactionId().toString());
 
       TransactionEntity transactionEntity =
-              new TransactionEntity(
-                      transactionId,
-                      paymentId,
-                      PaymentStatus.PENDING);
+          new TransactionEntity(transactionId, paymentId, PaymentStatus.PENDING);
 
       transactionRepository.save(transactionEntity);
     }
 
     PaymentValidationRequest paymentValidationRequest =
-            paymentValidationRequestMapper.toEvent(event);
+        paymentValidationRequestMapper.toEvent(event);
 
-    paymentValidationRequestPublisher.publish(
-            paymentValidationRequest);
+    paymentValidationRequestPublisher.publish(paymentValidationRequest);
 
     for (TransactionEvent transaction : event.getTransactions()) {
 
       TransactionValidationRequest transactionValidationRequest =
-              transactionValidationRequestMapper.toEvent(
-                      transaction,
-                      event.getCurrency());
+          transactionValidationRequestMapper.toEvent(transaction, event.getCurrency());
 
-      transactionValidationRequestPublisher.publish(
-              transactionValidationRequest);
+      transactionValidationRequestPublisher.publish(transactionValidationRequest);
     }
 
-    LOGGER.info(
-            "Started validation for payment {}",
-            paymentId);
+    LOGGER.info("Started validation for payment {}", paymentId);
   }
 
-  @KafkaListener(
-          topics = "payment-validation-result",
-          groupId = "payment-orchestrator")
-  public void handlePaymentValidationResult(
-          PaymentValidationResult result) {
+  @KafkaListener(topics = "payment-validation-result", groupId = "payment-orchestrator")
+  public void handlePaymentValidationResult(PaymentValidationResult result) {
 
-    UUID paymentId =
-            UUID.fromString(
-                    result.getPaymentId().toString());
+    UUID paymentId = UUID.fromString(result.getPaymentId().toString());
 
     PaymentEntity payment =
-            paymentRepository
-                    .findById(paymentId)
-                    .orElseThrow(
-                            () ->
-                                    new IllegalStateException(
-                                            "Payment not found: " + paymentId));
+        paymentRepository
+            .findById(paymentId)
+            .orElseThrow(() -> new IllegalStateException("Payment not found: " + paymentId));
 
-    PaymentStatus status =
-            PaymentStatus.valueOf(
-                    result.getStatus().toString());
+    PaymentStatus status = PaymentStatus.valueOf(result.getStatus().toString());
 
     payment.setPaymentValidationStatus(status);
 
     paymentRepository.save(payment);
 
-    LOGGER.info(
-            "Updated payment validation status: {} to {}",
-            paymentId,
-            status);
+    LOGGER.info("Updated payment validation status: {} to {}", paymentId, status);
 
-    paymentStatusAggregator.updateFinalPaymentStatus(
-            paymentId);
+    paymentStatusAggregator.updateFinalPaymentStatus(paymentId);
   }
 
-  @KafkaListener(
-          topics = "transaction-validation-result",
-          groupId = "payment-orchestrator")
-  public void handleTransactionValidationResult(
-          TransactionValidationResult result) {
+  @KafkaListener(topics = "transaction-validation-result", groupId = "payment-orchestrator")
+  public void handleTransactionValidationResult(TransactionValidationResult result) {
 
-    UUID transactionId =
-            UUID.fromString(
-                    result.getTransactionId().toString());
+    UUID transactionId = UUID.fromString(result.getTransactionId().toString());
 
-    UUID paymentId =
-            UUID.fromString(
-                    result.getPaymentId().toString());
+    UUID paymentId = UUID.fromString(result.getPaymentId().toString());
 
     TransactionEntity transaction =
-            transactionRepository
-                    .findById(transactionId)
-                    .orElseThrow(
-                            () ->
-                                    new IllegalStateException(
-                                            "Transaction not found: "
-                                                    + transactionId));
+        transactionRepository
+            .findById(transactionId)
+            .orElseThrow(
+                () -> new IllegalStateException("Transaction not found: " + transactionId));
 
-    PaymentStatus status =
-            PaymentStatus.valueOf(
-                    result.getStatus().toString());
+    PaymentStatus status = PaymentStatus.valueOf(result.getStatus().toString());
 
     transaction.setStatus(status);
 
     transactionRepository.save(transaction);
 
-    LOGGER.info(
-            "Updated transaction validation status: {} to {}",
-            transactionId,
-            status);
+    LOGGER.info("Updated transaction validation status: {} to {}", transactionId, status);
 
-    paymentStatusAggregator.updateFinalPaymentStatus(
-            paymentId);
+    paymentStatusAggregator.updateFinalPaymentStatus(paymentId);
   }
 }
