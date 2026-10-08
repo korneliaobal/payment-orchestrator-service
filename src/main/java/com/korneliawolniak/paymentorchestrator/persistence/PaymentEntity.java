@@ -1,11 +1,11 @@
 package com.korneliawolniak.paymentorchestrator.persistence;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -16,11 +16,8 @@ public class PaymentEntity {
 
   @Id private UUID id;
 
-  @Enumerated(EnumType.STRING)
-  private PaymentStatus status;
-
-  @Enumerated(EnumType.STRING)
-  private PaymentStatus paymentValidationStatus;
+  @OneToOne(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)
+  private PaymentAuthorizationEntity authorization;
 
   private String debtorName;
   private String debtorAccountNumber;
@@ -96,27 +93,14 @@ public class PaymentEntity {
 
   public PaymentEntity(UUID id, PaymentStatus status, PaymentStatus paymentValidationStatus) {
     this.id = id;
-    this.status = status;
-    this.paymentValidationStatus = paymentValidationStatus;
+    this.authorization = new PaymentAuthorizationEntity(this, status, paymentValidationStatus);
   }
 
   public UUID getId() {
     return id;
   }
 
-  public PaymentStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(PaymentStatus status) {
-    this.status = status;
-  }
-
-  public PaymentStatus getPaymentValidationStatus() {
-    return paymentValidationStatus;
-  }
-
-  public void setPaymentValidationStatus(PaymentStatus paymentValidationStatus) {
-    this.paymentValidationStatus = paymentValidationStatus;
+  public PaymentAuthorizationEntity getAuthorization() {
+    return authorization;
   }
 }

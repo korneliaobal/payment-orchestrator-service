@@ -32,8 +32,8 @@ public class PaymentStatusController {
                 ResponseEntity.ok(
                     new PaymentStatusResponse(
                         payment.getId(),
-                        payment.getStatus(),
-                        payment.getPaymentValidationStatus(),
+                        payment.getAuthorization().getStatus(),
+                        payment.getAuthorization().getPaymentValidationStatus(),
                         payment.getReasonCodes(),
                         new PartyResponse(
                             payment.getDebtorName(), payment.getDebtorAccountNumber()),
@@ -46,8 +46,8 @@ public class PaymentStatusController {
                                 transaction ->
                                     new TransactionStatusResponse(
                                         transaction.getId(),
-                                        transaction.getStatus(),
-                                        transaction.getReasonCodes(),
+                                        transaction.getAuthorization().getStatus(),
+                                        transaction.getAuthorization().getReasonCodes(),
                                         new PartyResponse(
                                             transaction.getCreditorName(),
                                             transaction.getCreditorAccountNumber()),

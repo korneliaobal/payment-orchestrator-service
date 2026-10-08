@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class PaymentOrchestrator {
@@ -54,6 +55,7 @@ public class PaymentOrchestrator {
     this.paymentStatusAggregator = paymentStatusAggregator;
   }
 
+  @Transactional
   @KafkaListener(topics = "payment-created", groupId = "payment-orchestrator")
   public void handlePaymentCreated(PaymentCreatedEvent event) {
 
@@ -99,6 +101,7 @@ public class PaymentOrchestrator {
     LOGGER.info("Started validation for payment {}", paymentId);
   }
 
+  @Transactional
   @KafkaListener(topics = "payment-validation-result", groupId = "payment-orchestrator")
   public void handlePaymentValidationResult(PaymentValidationResult result) {
 
@@ -106,12 +109,12 @@ public class PaymentOrchestrator {
 
     PaymentEntity payment =
         paymentRepository
-            .findById(paymentId)
+            .findByIdForUpdate(paymentId)
             .orElseThrow(() -> new IllegalStateException("Payment not found: " + paymentId));
 
     PaymentStatus status = PaymentStatus.valueOf(result.getStatus().toString());
 
-    payment.setPaymentValidationStatus(status);
+    payment.getAuthorization().setPaymentValidationStatus(status);
     payment.setReasonCodes(result.getReasonCodes().stream().map(Object::toString).toList());
 
     paymentRepository.save(payment);
@@ -121,6 +124,7 @@ public class PaymentOrchestrator {
     paymentStatusAggregator.updateFinalPaymentStatus(paymentId);
   }
 
+  @Transactional
   @KafkaListener(topics = "transaction-validation-result", groupId = "payment-orchestrator")
   public void handleTransactionValidationResult(TransactionValidationResult result) {
 
@@ -128,16 +132,26 @@ public class PaymentOrchestrator {
 
     UUID paymentId = UUID.fromString(result.getPaymentId().toString());
 
+    paymentRepository
+        .findByIdForUpdate(paymentId)
+        .orElseThrow(() -> new IllegalStateException("Payment not found: " + paymentId));
+
     TransactionEntity transaction =
         transactionRepository
             .findById(transactionId)
             .orElseThrow(
                 () -> new IllegalStateException("Transaction not found: " + transactionId));
 
+    if (!transaction.getPaymentId().equals(paymentId)) {
+      throw new IllegalArgumentException("Transaction does not belong to payment: " + paymentId);
+    }
+
     PaymentStatus status = PaymentStatus.valueOf(result.getStatus().toString());
 
-    transaction.setStatus(status);
-    transaction.setReasonCodes(result.getReasonCodes().stream().map(Object::toString).toList());
+    transaction.getAuthorization().setStatus(status);
+    transaction
+        .getAuthorization()
+        .setReasonCodes(result.getReasonCodes().stream().map(Object::toString).toList());
 
     transactionRepository.save(transaction);
 
