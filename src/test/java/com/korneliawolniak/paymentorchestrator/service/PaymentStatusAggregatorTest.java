@@ -37,14 +37,14 @@ class PaymentStatusAggregatorTest {
     TransactionEntity transaction2 =
         new TransactionEntity(UUID.randomUUID(), paymentId, PaymentStatus.OK);
 
-    when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+    when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(payment));
 
     when(transactionRepository.findByPaymentId(paymentId))
         .thenReturn(List.of(transaction1, transaction2));
 
     aggregator.updateFinalPaymentStatus(paymentId);
 
-    assertEquals(PaymentStatus.OK, payment.getStatus());
+    assertEquals(PaymentStatus.OK, payment.getAuthorization().getStatus());
 
     verify(paymentRepository).save(payment);
   }
@@ -59,13 +59,13 @@ class PaymentStatusAggregatorTest {
     TransactionEntity transaction =
         new TransactionEntity(UUID.randomUUID(), paymentId, PaymentStatus.OK);
 
-    when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+    when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(payment));
 
     when(transactionRepository.findByPaymentId(paymentId)).thenReturn(List.of(transaction));
 
     aggregator.updateFinalPaymentStatus(paymentId);
 
-    assertEquals(PaymentStatus.NOT_OK, payment.getStatus());
+    assertEquals(PaymentStatus.NOT_OK, payment.getAuthorization().getStatus());
 
     verify(paymentRepository).save(payment);
   }
@@ -82,14 +82,14 @@ class PaymentStatusAggregatorTest {
     TransactionEntity transaction2 =
         new TransactionEntity(UUID.randomUUID(), paymentId, PaymentStatus.NOT_OK);
 
-    when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+    when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(payment));
 
     when(transactionRepository.findByPaymentId(paymentId))
         .thenReturn(List.of(transaction1, transaction2));
 
     aggregator.updateFinalPaymentStatus(paymentId);
 
-    assertEquals(PaymentStatus.NOT_OK, payment.getStatus());
+    assertEquals(PaymentStatus.NOT_OK, payment.getAuthorization().getStatus());
 
     verify(paymentRepository).save(payment);
   }
@@ -106,13 +106,13 @@ class PaymentStatusAggregatorTest {
     TransactionEntity transaction2 =
         new TransactionEntity(UUID.randomUUID(), paymentId, PaymentStatus.PENDING);
 
-    when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+    when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(payment));
 
     when(transactionRepository.findByPaymentId(paymentId))
         .thenReturn(List.of(transaction1, transaction2));
 
     aggregator.updateFinalPaymentStatus(paymentId);
 
-    assertEquals(PaymentStatus.PENDING, payment.getStatus());
+    assertEquals(PaymentStatus.PENDING, payment.getAuthorization().getStatus());
   }
 }

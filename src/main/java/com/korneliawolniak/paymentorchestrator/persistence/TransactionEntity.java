@@ -1,13 +1,11 @@
 package com.korneliawolniak.paymentorchestrator.persistence;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -17,26 +15,18 @@ public class TransactionEntity {
 
   private UUID paymentId;
 
-  @Enumerated(EnumType.STRING)
-  private PaymentStatus status;
+  @OneToOne(
+      mappedBy = "transaction",
+      cascade = CascadeType.ALL,
+      orphanRemoval = true,
+      optional = false)
+  private TransactionAuthorizationEntity authorization;
 
   private String creditorName;
   private String creditorAccountNumber;
 
   @Column(precision = 38, scale = 8)
   private BigDecimal amount;
-
-  @Convert(converter = ReasonCodesConverter.class)
-  @Column(length = 1024)
-  private List<String> reasonCodes = List.of();
-
-  public List<String> getReasonCodes() {
-    return reasonCodes == null ? List.of() : reasonCodes;
-  }
-
-  public void setReasonCodes(List<String> value) {
-    reasonCodes = List.copyOf(value);
-  }
 
   public String getCreditorName() {
     return creditorName;
@@ -67,7 +57,7 @@ public class TransactionEntity {
   public TransactionEntity(UUID id, UUID paymentId, PaymentStatus status) {
     this.id = id;
     this.paymentId = paymentId;
-    this.status = status;
+    this.authorization = new TransactionAuthorizationEntity(this, status);
   }
 
   public UUID getId() {
@@ -78,11 +68,7 @@ public class TransactionEntity {
     return paymentId;
   }
 
-  public PaymentStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(PaymentStatus status) {
-    this.status = status;
+  public TransactionAuthorizationEntity getAuthorization() {
+    return authorization;
   }
 }

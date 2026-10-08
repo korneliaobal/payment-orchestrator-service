@@ -8,6 +8,7 @@ import com.korneliawolniak.paymentorchestrator.persistence.TransactionRepository
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentStatusAggregator {
@@ -21,39 +22,43 @@ public class PaymentStatusAggregator {
     this.transactionRepository = transactionRepository;
   }
 
+  @Transactional
   public void updateFinalPaymentStatus(UUID paymentId) {
     PaymentEntity payment =
         paymentRepository
-            .findById(paymentId)
+            .findByIdForUpdate(paymentId)
             .orElseThrow(() -> new IllegalStateException("Payment not found: " + paymentId));
 
     List<TransactionEntity> transactions = transactionRepository.findByPaymentId(paymentId);
 
-    if (payment.getPaymentValidationStatus() == PaymentStatus.NOT_OK) {
-      payment.setStatus(PaymentStatus.NOT_OK);
+    if (payment.getAuthorization().getPaymentValidationStatus() == PaymentStatus.NOT_OK) {
+      payment.getAuthorization().setStatus(PaymentStatus.NOT_OK);
       paymentRepository.save(payment);
       return;
     }
 
     boolean anyTransactionNotOk =
         transactions.stream()
-            .anyMatch(transaction -> transaction.getStatus() == PaymentStatus.NOT_OK);
+            .anyMatch(
+                transaction -> transaction.getAuthorization().getStatus() == PaymentStatus.NOT_OK);
 
     if (anyTransactionNotOk) {
-      payment.setStatus(PaymentStatus.NOT_OK);
+      payment.getAuthorization().setStatus(PaymentStatus.NOT_OK);
       paymentRepository.save(payment);
       return;
     }
 
-    boolean paymentValidationFinished = payment.getPaymentValidationStatus() == PaymentStatus.OK;
+    boolean paymentValidationFinished =
+        payment.getAuthorization().getPaymentValidationStatus() == PaymentStatus.OK;
 
     boolean allTransactionsOk =
         !transactions.isEmpty()
             && transactions.stream()
-                .allMatch(transaction -> transaction.getStatus() == PaymentStatus.OK);
+                .allMatch(
+                    transaction -> transaction.getAuthorization().getStatus() == PaymentStatus.OK);
 
     if (paymentValidationFinished && allTransactionsOk) {
-      payment.setStatus(PaymentStatus.OK);
+      payment.getAuthorization().setStatus(PaymentStatus.OK);
       paymentRepository.save(payment);
     }
   }

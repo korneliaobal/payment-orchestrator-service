@@ -34,7 +34,7 @@ public class PaymentHistoryController {
             payment ->
                 new PaymentHistoryItem(
                     payment.getId(),
-                    payment.getStatus(),
+                    payment.getAuthorization().getStatus(),
                     new PartyResponse(payment.getDebtorName(), payment.getDebtorAccountNumber()),
                     payment.getCurrency(),
                     payment.getTotalAmount(),

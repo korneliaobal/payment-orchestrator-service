@@ -35,7 +35,7 @@ class PaymentStatusControllerTest {
     payment.setCurrency("PLN");
     when(payments.findById(id)).thenReturn(Optional.of(payment));
     var transaction = new TransactionEntity(transactionId, id, PaymentStatus.NOT_OK);
-    transaction.setReasonCodes(List.of("AMOUNT_BELOW_MINIMUM"));
+    transaction.getAuthorization().setReasonCodes(List.of("AMOUNT_BELOW_MINIMUM"));
     transaction.setCreditorName("Anna Kowalska");
     transaction.setAmount(new java.math.BigDecimal("3.00"));
     when(transactions.findByPaymentId(id)).thenReturn(List.of(transaction));
