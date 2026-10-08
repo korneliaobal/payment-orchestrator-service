@@ -16,6 +16,8 @@ import com.korneliawolniak.paymentprocessing.avro.PaymentValidationResult;
 import com.korneliawolniak.paymentprocessing.avro.TransactionEvent;
 import com.korneliawolniak.paymentprocessing.avro.TransactionValidationRequest;
 import com.korneliawolniak.paymentprocessing.avro.TransactionValidationResult;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +62,12 @@ public class PaymentOrchestrator {
     PaymentEntity paymentEntity =
         new PaymentEntity(paymentId, PaymentStatus.PENDING, PaymentStatus.PENDING);
 
+    paymentEntity.setDebtorName(event.getDebtorName().toString());
+    paymentEntity.setDebtorAccountNumber(event.getDebtorAccountNumber().toString());
+    paymentEntity.setCurrency(event.getCurrency().toString());
+    paymentEntity.setTotalAmount(new BigDecimal(event.getTotalAmount().toString()));
+    paymentEntity.setTransactionCount(event.getTransactionCount());
+    paymentEntity.setCreatedAt(Instant.now());
     paymentRepository.save(paymentEntity);
 
     for (TransactionEvent transaction : event.getTransactions()) {
@@ -69,6 +77,9 @@ public class PaymentOrchestrator {
       TransactionEntity transactionEntity =
           new TransactionEntity(transactionId, paymentId, PaymentStatus.PENDING);
 
+      transactionEntity.setCreditorName(transaction.getCreditorName().toString());
+      transactionEntity.setCreditorAccountNumber(transaction.getCreditorAccountNumber().toString());
+      transactionEntity.setAmount(new BigDecimal(transaction.getAmount().toString()));
       transactionRepository.save(transactionEntity);
     }
 
@@ -101,6 +112,7 @@ public class PaymentOrchestrator {
     PaymentStatus status = PaymentStatus.valueOf(result.getStatus().toString());
 
     payment.setPaymentValidationStatus(status);
+    payment.setReasonCodes(result.getReasonCodes().stream().map(Object::toString).toList());
 
     paymentRepository.save(payment);
 
@@ -125,6 +137,7 @@ public class PaymentOrchestrator {
     PaymentStatus status = PaymentStatus.valueOf(result.getStatus().toString());
 
     transaction.setStatus(status);
+    transaction.setReasonCodes(result.getReasonCodes().stream().map(Object::toString).toList());
 
     transactionRepository.save(transaction);
 
