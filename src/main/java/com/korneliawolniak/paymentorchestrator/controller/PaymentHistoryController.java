@@ -7,12 +7,14 @@ import com.korneliawolniak.paymentorchestrator.persistence.PaymentRepository;
 import com.korneliawolniak.paymentorchestrator.persistence.PaymentStatus;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 public class PaymentHistoryController {
   private final PaymentRepository payments;
 
