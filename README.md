@@ -39,7 +39,7 @@ References: [Railway Dockerfiles](https://docs.railway.com/builds/dockerfiles), 
 
 ## Frontend access
 
-The status and history controllers allow cross-origin requests from `http://localhost:4200`. The Angular frontend uses the orchestrator public domain for both endpoints. When deploying the frontend, add its actual origin to the CORS allowlist.
+The status and history controllers allow cross-origin requests from `http://localhost:4200` and `https://obal-flow.up.railway.app`. The Angular frontend uses the orchestrator public domain for both endpoints.
 
 ## Local verification
 

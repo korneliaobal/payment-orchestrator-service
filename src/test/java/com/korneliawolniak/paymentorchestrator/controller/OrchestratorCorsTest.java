@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -25,28 +27,27 @@ import org.springframework.test.web.servlet.MockMvc;
 class OrchestratorCorsTest {
   @Autowired private MockMvc mvc;
 
-  @Test
-  void allowsLocalFrontendToReadHistory() throws Exception {
-    mvc.perform(get("/api/payment-history").header(HttpHeaders.ORIGIN, "http://localhost:4200"))
+  @ParameterizedTest
+  @ValueSource(strings = {"http://localhost:4200", "https://obal-flow.up.railway.app"})
+  void allowsConfiguredFrontendToReadHistory(String origin) throws Exception {
+    mvc.perform(get("/api/payment-history").header(HttpHeaders.ORIGIN, origin))
         .andExpect(status().isOk())
-        .andExpect(
-            header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200"));
+        .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin));
   }
 
-  @Test
-  void allowsStatusPreflightAndExposesMissingPaymentResponse() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"http://localhost:4200", "https://obal-flow.up.railway.app"})
+  void allowsStatusPreflightAndExposesMissingPaymentResponse(String origin) throws Exception {
     String path = "/api/payment-status/" + UUID.randomUUID();
     mvc.perform(
             options(path)
-                .header(HttpHeaders.ORIGIN, "http://localhost:4200")
+                .header(HttpHeaders.ORIGIN, origin)
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
         .andExpect(status().isOk())
-        .andExpect(
-            header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200"));
-    mvc.perform(get(path).header(HttpHeaders.ORIGIN, "http://localhost:4200"))
+        .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin));
+    mvc.perform(get(path).header(HttpHeaders.ORIGIN, origin))
         .andExpect(status().isNotFound())
-        .andExpect(
-            header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200"));
+        .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin));
   }
 
   @Test
