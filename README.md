@@ -37,6 +37,10 @@ For a Railway service connected to this repository, leave the root directory at 
 
 References: [Railway Dockerfiles](https://docs.railway.com/builds/dockerfiles), [configuration as code](https://docs.railway.com/config-as-code/reference), and [healthchecks](https://docs.railway.com/deployments/healthchecks).
 
+## Frontend access
+
+The status and history controllers allow cross-origin requests from `http://localhost:4200`. The Angular frontend uses the orchestrator public domain for both endpoints. When deploying the frontend, add its actual origin to the CORS allowlist.
+
 ## Local verification
 
 Install the sibling `payment-contracts` project first, then run:
